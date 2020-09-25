@@ -12,8 +12,6 @@ init_path = os.getcwd()
 
 
 def box():
-
-
     if not os.path.exists(path):
         subprocess.call("sudo mkdir " + path, shell=True)
         subprocess.call("sudo chmod 777 " + path, shell=True)
@@ -22,8 +20,7 @@ def box():
         subprocess.call("sudo chmod 777 " + path, shell=True)
         os.chdir(base_path)
         subprocess.call("ls -l ../", shell=True)
-        dirname = wget.download("https://github.com/debuerreotype/docker-debian-artifacts/raw/"
-                        "3503997cf522377bc4e4967c7f0fcbcb18c69fc8/buster/slim/rootfs.tar.xz")
+        dirname = wget.download("https://github.com/debuerreotype/docker-debian-artifacts/raw/3503997cf522377bc4e4967c7f0fcbcb18c69fc8/buster/slim/rootfs.tar.xz")
         tar = tarfile.open(dirname, "r:xz")
         tar.extractall()
         tar.close()
@@ -33,28 +30,17 @@ def box():
             print("Error: %s : %s" % (tar, e.strerror))
 
 
-# subprocess.call("debootstrap --arch i386 stretch /var/lib/box htpp://deb.debian.org/debian",shell=True)
-# subprocess.call("chroot /var/lib/box",shell=True)
-# os.chroot("/var/lib/box")
-
-
 def key():
-
-
     print(wget.download("https://www.mongodb.org/static/pgp/server-4.4.asc", out="tmp_key"))
 
 
 def parse_yaml(yml_file):
-
-
     a_yaml_file = open(yml_file)
     parsed_yaml_file = yaml.load(a_yaml_file, Loader=yaml.FullLoader)
     return parsed_yaml_file
 
 
 def create_env(conf_yaml, gnupg=None):
-
-
     os.chdir(init_path)
     conf = parse_yaml(conf_yaml)
     os.chdir(path)
@@ -66,17 +52,15 @@ def create_env(conf_yaml, gnupg=None):
         print("Création du repertoire " + conf["name"] + ".")
     os.mkdir("./env/" + conf["name"])
     path_env = path + "/env/" + conf["name"]
-
     os.chdir(path_env)
-    dirname = wget.download("https://github.com/debuerreotype/docker-debian-artifacts/raw/"
-                            "3503997cf522377bc4e4967c7f0fcbcb18c69fc8/buster/slim/rootfs.tar.xz")
+    dirname = wget.download("https://github.com/debuerreotype/docker-debian-artifacts/raw/3503997cf522377bc4e4967c7f0fcbcb18c69fc8/buster/slim/rootfs.tar.xz")
     tar = tarfile.open(dirname, "r:xz")
     tar.extractall()
     tar.close()
     try:
         os.remove(dirname)
     except OSError as e:
-      print("Error: %s : %s" % (tar, e.strerror))
+        print("Error: %s : %s" % (tar, e.strerror))
 
     os.system("apt-get update && apt-get upgrade")
     os.system("sudo apt-get install gnupg")
@@ -98,40 +82,32 @@ def create_env(conf_yaml, gnupg=None):
     print("Chroot done new root repertory set to" + conf["name"] + ".")
 
 
-    # print(conf["repositories"][0]["repository"])
-    # key_repo = wget.download(conf["repositories"][0]["key"], out='./')
-    # print(key_repo)
-
-    # gpg = gnupg.GPG(gnupghome='/etc/apt/trusted.gpg')
-    # key_data = open(key_repo).read()
-    # import_result = gpg.import_keys(key_data)
-    # pprint(import_result.results)
-
-
 def build_image(conf_yaml):
-
-
     path = "/var/lib/box/"
+    conf = parse_yaml(conf_yaml)
+    path_env = path + "/env/" + conf["name"]
     if len(sys.argv) >= 2 and sys.argv[0] == "box" and sys.argv[1] == "build":
         fileBuild = sys.argv[2]
-
     path_to_list = "/etc/apt/sources.list.d/mongodb-org-4.4.list"
     conf = parse_yaml(conf_yaml)
-
     with open(path_to_list, "a") as file_list:
         file_list.write(conf["repositories"][0]["key"])
-
     if not os.path.exists(path):
         os.makedirs(path + conf["repositories"][0]["name"], mode=0o751)
+    unmount_repo(path_env)
 
-box()
-create_env("mongo.yml")
+
+def unmount_repo(path_env):
+    os.system("umount " + path_env + "/proc")
+    os.system("umount " + path_env + "/sys")
+    os.system("umount " + path_env + "/dev")
 
 
 def create_alias():
+    subprocess.call("echo \"alias box='sudo python3 \"" + init_path + "\"/main.py'\" >> ~/.bashrc && exec bash", shell=True)
 
 
-    subprocess.call("echo \"alias box='sudo python3 \"" + init_path + "\"/main.py'\" >> ~/.bashrc && exec bash",
-                    shell=True)
+box()
+create_env("mongo.yml")
 
 # box()
